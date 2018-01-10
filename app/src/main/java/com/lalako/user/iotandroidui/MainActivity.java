@@ -14,6 +14,8 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 
 public class MainActivity extends AppCompatActivity {
 
+    /*MQTT TEST*/
+
     static String MQTTHOST = "tcp://iot.eclipse.org:1883";
     static String topicStr = "lalako";
     MqttAndroidClient client;
