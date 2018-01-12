@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
         thread.join();
         showKey = (TextView) findViewById(R.id.textView);
         showKey.setText(AESKey);
+        AESCrypt AESC = new AESCrypt(AESKey);
     }
 
     private Runnable postThread = new Runnable(){
