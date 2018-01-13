@@ -4,119 +4,83 @@ package com.lalako.user.iotandroidui;
  * Created by Administrator on 2018/1/12.
  */
 
-
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Message;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
-import android.os.NetworkOnMainThreadException;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import static java.lang.System.out;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.HTTP;
-import org.apache.http.util.EntityUtils;
 import org.json.*;
 
 /**
  *
  * @author Administrator
  */
+
 public class IOTKeyGet{
 
     String loginURL = "http://60.250.111.124/vendorTrial/api/iBadgeService.php";
     String Host = "60.250.111.124";
     List<String> cookie;
-    List<String> deviceInfo;
+
     //String account = "iot01@ttu.edu.tw";
     String account = "test@example.com";
     String password = "testpw123";
     String targetUID = "0514011A2888028AF1282522";
     String AESKey = "";
+    int targetStatus = 0;
 
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public IOTKeyGet() throws Exception{
-        Log.d("TAG", "INIT");
+    public IOTKeyGet(){
+        AESKey = "";
     }
 
+    public IOTKeyGet(String inputAccount, String inputPassword, String inputTargetUID){
+        this();
+        account = inputAccount;
+        password = inputPassword;
+        targetUID = inputTargetUID;
+    }
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    public boolean getInfo() throws Exception {
+        return (getIOTLogin()  /*登入server*/ && getIOTKey() /*請求AESKey*/);
+    }
+
+    public String getAESKey(){
+        return AESKey;
+    }
+    public int getStatus(){
+        return targetStatus;
+    }
+
+    //回傳從Server取得的AESKey
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String sendKey() throws Exception{
-        Log.d("TAG", "login before");
-        getIOTLogin();
-        getIOTKey();
-
-        //AndroidPostLogin();
+        getIOTLogin(); //登入server
+        getIOTKey(); //請求AESKey
         return AESKey;
-
     }
 
-    public void AndroidPostLogin(){
-        HttpClient httpClient = new DefaultHttpClient();
-        HttpPost httpPost = new HttpPost(loginURL);
-        List<NameValuePair> params = new ArrayList<NameValuePair>();
-        params.add(new BasicNameValuePair("endpoint", "UserLogin"));
-        params.add(new BasicNameValuePair("mail", "iot01@ttu.edu.tw"));
-        params.add(new BasicNameValuePair("passphrase", "testpw123"));
-
-        String strResult = "";
-        try{
-            //發送Http Request，內容為params，且為UTF8格式
-            httpPost.setEntity(new UrlEncodedFormEntity(params, HTTP.UTF_8));
-            //接收Http Server的回應
-            HttpResponse httpResponse = new DefaultHttpClient().execute(httpPost);
-            //判斷Http Server是否回傳OK(200)
-            if(httpResponse.getStatusLine().getStatusCode() == 200){
-                //將Post回傳的值轉為String，將轉回來的值轉為UTF8，否則若是中文會亂碼
-                strResult = EntityUtils.toString(httpResponse.getEntity(),HTTP.UTF_8);
-
-                Log.d("TAG", strResult);
-
-                Message msg = Message.obtain();
-                //設定Message的內容
-                msg.what = 123;
-                msg.obj=strResult;
-                //使用MainActivity的static handler來丟Message
-            }
-
-        }catch (IOException e) {
-            // Log exception
-            e.printStackTrace();
-        }
-
-    }
-
+    //登入server
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public void getIOTLogin() throws Exception{
+    public boolean getIOTLogin() throws Exception{
 
+        //要發送的登入請求資料
         String postData = "endpoint=UserLogin&mail=" + account + "&passphrase=" + password + "&submit=Login";
 
         try{
             HttpURLConnection conn = (HttpURLConnection)new URL(loginURL).openConnection();
 
+            //設定連線型態
             conn.setDoOutput(true);
             conn.setDoInput(true);
             conn.setRequestMethod("POST");
@@ -125,6 +89,7 @@ public class IOTKeyGet{
             conn.setFollowRedirects(true);
             conn.setInstanceFollowRedirects(true);
 
+            //設定header
             conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
             conn.setRequestProperty("Upgrade-Insecure-Requests", "1");
             conn.setRequestProperty("Accept-Language", "zh-TW,zh;q=0.9,en;q=0.8");
@@ -133,59 +98,62 @@ public class IOTKeyGet{
             conn.setRequestProperty("Host", Host);
             conn.setRequestProperty("Connection", "keep-alive");
 
-            Log.d("TAG", "DataOutputStream before");
-
+            //嘗試發送資料
             try ( DataOutputStream postStream = new DataOutputStream(conn.getOutputStream()) ){
                 postStream.writeBytes(postData);
             }
             catch (Exception ex){
                 Log.d("TAG", "-----POST_Failed-----");
-                out.println("-----POST_Failed-----");
+                System.out.println("-----POST_Failed-----");
                 ex.printStackTrace();
+                return false;
             }
 
+            //設定輸入型態
             InputStream ips;
             String encode = conn.getContentEncoding();
-            Log.d("TAG", "DataOutputStream after");
 
             if (encode != null) {
-                out.println("content-encoding :: " + encode);
+                System.out.println("content-encoding :: " + encode);
                 if (!encode.equals("gzip"))
                     throw new Exception("CanNotEncodeInputStream");
                 ips = new GZIPInputStream(conn.getInputStream());
             }
             else {
-                out.println("content-encoding :: null, encode in default !");
+                System.out.println("content-encoding :: null, encode in default !");
                 ips = conn.getInputStream();
             }
+
+            //讀取輸入資料 這裡只取登入成功的Cookies
             try (
                     BufferedReader buff = new BufferedReader( new InputStreamReader(ips, "UTF-8")
                     )
             ){
                 cookie = new ArrayList<String>();
-                //out.println("Reponse Cookie : ");
 
                 for (Object str : conn.getHeaderFields().get("Set-Cookie")){
                     cookie.add(str.toString().split(";", 2)[0]);
-                    //out.println(str.toString().split(";", 2)[0]);
                 }
-                //System.out.print(cookie.get(0));
             }
             finally{
                 ips.close();
             }
-            //out.println("-----取得登入頁面成功-----\n");
         }
         catch(Exception ex){
             ex.printStackTrace();
-            throw new Exception("GetLoginFailed");
+            return false;
         }
+        return true;
     }
 
+    //請求AESKey
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public void getIOTKey() throws Exception{
-        String option = "all";
+    public boolean getIOTKey() throws Exception{
+        String option = "all"; // 選擇要取得的資料類型
+        //要發送的登入請求資料
         String postData = "endpoint=ListDevices&statusFilter=" + option + "&submit=Login";
+
+        //讀取cookies
         String requestCookie = cookie.get(0).toString();
         for (int i = 1; i < cookie.size(); i++){
             requestCookie = requestCookie + "; " + cookie.get(i);
@@ -194,6 +162,7 @@ public class IOTKeyGet{
         try{
             HttpURLConnection conn = (HttpURLConnection)new URL(loginURL).openConnection();
 
+            //設定連線型態
             conn.setDoOutput(true);
             conn.setDoInput(true);
             conn.setRequestMethod("POST");
@@ -202,7 +171,7 @@ public class IOTKeyGet{
             conn.setFollowRedirects(true);
             conn.setInstanceFollowRedirects(true);
 
-
+            //設定header
             conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
             conn.setRequestProperty("Upgrade-Insecure-Requests", "1");
             conn.setRequestProperty("Accept-Language", "zh-TW,zh;q=0.9,en;q=0.8");
@@ -212,65 +181,76 @@ public class IOTKeyGet{
             conn.setRequestProperty("Connection", "keep-alive");
             conn.setRequestProperty("Cookie", requestCookie);
 
+            //嘗試發送資料
             try ( DataOutputStream postStream = new DataOutputStream(conn.getOutputStream()) ){
                 postStream.writeBytes(postData);
             }
             catch (Exception ex){
-                out.println("-----POST_Failed-----");
+                System.out.println("-----POST_Failed-----");
                 ex.printStackTrace();
+                return false;
             }
 
+            //設定輸入型態
             InputStream ips;
             String encode = conn.getContentEncoding();
 
             if (encode != null) {
-                out.println("content-encoding :: " + encode);
+                System.out.println("content-encoding :: " + encode);
                 if (!encode.equals("gzip"))
                     throw new Exception("CanNotEncodeInputStream");
                 ips = new GZIPInputStream(conn.getInputStream());
             }
             else {
-                out.println("content-encoding :: null, encode in default !");
+                System.out.println("content-encoding :: null, encode in default !");
                 ips = conn.getInputStream();
             }
+
+            //讀取輸入資料 並取得AESKey
             try (
                     BufferedReader buff = new BufferedReader( new InputStreamReader(ips, "UTF-8")
                     )
             ){
-
-                String getJSON = buff.readLine();
-                AESKey = FindKeyInString(targetUID, getJSON);
+                String getJSON = buff.readLine(); // 讀取回傳回來的JSON
+                if( !FindKeyInString(targetUID, getJSON) /*分析JSON 取出想要的Key */){
+                    return false;
+                }
                 Log.d("TAG", AESKey);
             }
             finally{
                 ips.close();
             }
-
-            //out.println("-----取得登入頁面成功-----\n");
         }
         catch(Exception ex){
             ex.printStackTrace();
-            throw new Exception("GetLoginFailed");
+            return false;
         }
+        return true;
     }
-    public String FindKeyInString(String targetUID, String largeJson) throws JSONException{
+
+    //分析JSON 取出想要的Key
+    public boolean FindKeyInString(String targetUID, String largeJson) throws JSONException{
 
         JSONObject j;
         j = new JSONObject(largeJson);
+        boolean findFlag = false;
 
         JSONObject targetJSONObject;
         targetJSONObject = new JSONObject();
         for (int current = 0; current < j.getJSONArray("deviceList").length(); current++){
             if( j.getJSONArray("deviceList").getJSONObject(current).get("uid").toString().equals(targetUID) ){
                 targetJSONObject = j.getJSONArray("deviceList").getJSONObject(current);
+                findFlag = true;
             }
         }
-
+        String status = targetJSONObject.get("deviceOnlineStatus").toString();
+        targetStatus = Integer.valueOf(status);
+        Log.d("TAG", "IOTstatus: " + status);
         String targetKey = targetJSONObject.getJSONArray("deviceAttributes").getJSONObject(1).get("attValue").toString();
+        AESKey = targetKey;
         System.out.println(targetKey);
 
-
-        return targetKey;
+        return findFlag;
     }
 
 }
