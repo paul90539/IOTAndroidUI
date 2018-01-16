@@ -32,9 +32,9 @@ public class IOTKeyGet{
     List<String> cookie;
 
     //String account = "iot01@ttu.edu.tw";
-    String account = "test@example.com";
+    String account = "iot11@ttu.edu.tw";
     String password = "testpw123";
-    String targetUID = "0514011A2888028AF1282522";
+    String targetUID = "0514011A2888028AD0F94522";
     String AESKey = "";
     int targetStatus = 0;
 
