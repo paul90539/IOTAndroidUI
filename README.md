@@ -27,11 +27,11 @@ IOTAndroidUI.apk -> Android手機車控介面<br>
  |-- ControlActivity.java -> 控制介面，這裡會依照按鈕發送密文指令給Yun<br>
  |-- AESCrypt.java -> 將訊息做 AES 的 CBC 方式加密的部分<br><br>
  
- Arduino Yun
+ Arduino Yun<br>
  |-- mqtt_basic.ino -> mqtt連線、上傳及取得 Session Key、監聽mqtt發送過來的密文、<br>
                        用 Key 解密、socket 連線到 Pi、發送解密後的命令給Pi<br><br>
  
- Pi
+ Pi<br>
  |-- yunSocket.cpp -> 建立一個 socket server 等 yun 連線，連線後接收傳過來的命令，<br>
                       依照命令使用uart使車子運作(往前、往後等)<br><br>
  
