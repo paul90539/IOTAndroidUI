@@ -13,6 +13,7 @@
 物聯網安全期末小專題<br>
 題目: 遙控車安全連線系統<br><br>
 這repository是Cinent端即Android手機端<br>
+Yun 跟 Pi 的部分在 [這裡](https://github.com/paul90539/IOTYunAndPi)<br>
 目的利用手機以加密方式跟遙控車端進行連線並傳輸命令<br>
 加密方式是利用ibadge這塊晶片來做硬體的加密<br>
 密文傳輸方式是利用MQTT server<br>
